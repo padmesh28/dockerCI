@@ -25,9 +25,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Print the input name to STDOUT
+        run:  pwd
+
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.0
+          
+      - name: Print the input name to STDOUT
+        run:  pwd
 
       - name: Terraform Init
         run: terraform init
