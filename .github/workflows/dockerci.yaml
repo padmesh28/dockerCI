@@ -1,75 +1,63 @@
-name: Terraform ACR and Docker CI
+name: Linux_Container_Workflow
 
 on:
   push:
     branches:
       - main
 
-env:
-  IMAGE_NAME: mews-platform-test
-  IMAGE_TAG: ${{ github.sha }}
-
 jobs:
-  terraform_acr:
-    name: Terraform Deploy ACR
+  build-and-deploy:
     runs-on: ubuntu-latest
 
-    env:
-      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-
-    outputs:
-      acr_login_server: ${{ steps.tf_outputs.outputs.acr_login_server }}
-      acr_admin_username: ${{ steps.tf_outputs.outputs.acr_admin_username }}
-      acr_admin_password: ${{ steps.tf_outputs.outputs.acr_admin_password }}
-
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Set up Terraform
+      # ✅ Login to Azure using service principal (via AZURE_CREDENTIALS secret)
+      - name: Azure CLI Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # ✅ Set up Terraform
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.0
 
+      # ✅ Run Terraform Init
       - name: Terraform Init
         run: terraform init
-        working-directory: ./acr
+        working-directory: ./build/acr
 
+      # ✅ Run Terraform Apply (provisions ACR with admin enabled)
       - name: Terraform Apply
         run: terraform apply -auto-approve
-        working-directory: ./acr
+        working-directory: ./build/acr
 
-      - name: Capture Terraform Outputs
+      # ✅ Get ACR outputs from Terraform (login server, user, pass)
+      - name: Get Terraform Outputs
         id: tf_outputs
         run: |
           echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
           echo "acr_admin_username=$(terraform output -raw acr_admin_username)" >> $GITHUB_OUTPUT
           echo "acr_admin_password=$(terraform output -raw acr_admin_password)" >> $GITHUB_OUTPUT
-        working-directory: ./acr
+        working-directory: ./build/acr
 
-  docker_build_push:
-    name: Docker Build & Push
-    runs-on: ubuntu-latest
-    needs: terraform_acr
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Login to ACR
+      # ✅ Login to ACR using credentials from Terraform output
+      - name: Docker Login to ACR
         uses: docker/login-action@v3
         with:
-          registry: ${{ needs.terraform_acr.outputs.acr_login_server }}
-          username: ${{ needs.terraform_acr.outputs.acr_admin_username }}
-          password: ${{ needs.terraform_acr.outputs.acr_admin_password }}
+          registry: ${{ steps.tf_outputs.outputs.acr_login_server }}
+          username: ${{ steps.tf_outputs.outputs.acr_admin_username }}
+          password: ${{ steps.tf_outputs.outputs.acr_admin_password }}
 
+      # ✅ Build Docker image
       - name: Build Docker Image
         run: |
-          docker build -t ${{ needs.terraform_acr.outputs.acr_login_server }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
+          docker build -t ${{ steps.tf_outputs.outputs.acr_login_server }}/sampleapp:${{ github.sha }} .
 
-      - name: Push Docker Image to ACR
+      # ✅ Push Docker image to ACR
+      - name: Push Docker Image
         run: |
-          docker push ${{ needs.terraform_acr.outputs.acr_login_server }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          docker push ${{ steps.tf_outputs.outputs.acr_login_server }}/sampleapp:${{ github.sha }}
