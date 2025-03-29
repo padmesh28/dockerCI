@@ -13,9 +13,6 @@ jobs:
   terraform_acr:
     name: Terraform Deploy ACR
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: build/acr   # <- corrected working directory
 
     outputs:
       acr_login_server: ${{ steps.tf_outputs.outputs.acr_login_server }}
@@ -23,26 +20,25 @@ jobs:
       acr_admin_password: ${{ steps.tf_outputs.outputs.acr_admin_password }}
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-      - name: Print the input name to STDOUT
-        run:  pwd
-
-      - uses: hashicorp/setup-terraform@v3
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.0
-          
-      - name: Print the input name to STDOUT
-        run:  pwd
 
       - name: Terraform Init
+        working-directory: build/acr
         run: terraform init
 
       - name: Terraform Apply
+        working-directory: build/acr
         run: terraform apply -auto-approve
 
       - name: Capture Terraform Outputs
         id: tf_outputs
+        working-directory: build/acr
         run: |
           echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
           echo "acr_admin_username=$(terraform output -raw acr_admin_username)" >> $GITHUB_OUTPUT
@@ -54,7 +50,8 @@ jobs:
     needs: terraform_acr
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
       - name: Login to Azure Container Registry
         uses: docker/login-action@v3
