@@ -33,12 +33,12 @@ jobs:
       # ✅ Run Terraform Init
       - name: Terraform Init
         run: terraform init
-        working-directory: ./build/acr
+        working-directory: ./acr
 
       # ✅ Run Terraform Apply (provisions ACR with admin enabled)
       - name: Terraform Apply
         run: terraform apply -auto-approve
-        working-directory: ./build/acr
+        working-directory: ./acr
 
       # ✅ Get ACR outputs from Terraform (login server, user, pass)
       - name: Get Terraform Outputs
@@ -47,7 +47,7 @@ jobs:
           echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
           echo "acr_admin_username=$(terraform output -raw acr_admin_username)" >> $GITHUB_OUTPUT
           echo "acr_admin_password=$(terraform output -raw acr_admin_password)" >> $GITHUB_OUTPUT
-        working-directory: ./build/acr
+        working-directory: ./acr
 
       # ✅ Login to ACR using credentials from Terraform output
       - name: Docker Login to ACR
