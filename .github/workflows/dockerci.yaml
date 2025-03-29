@@ -29,20 +29,20 @@ jobs:
           terraform_version: 1.5.0
 
       - name: Terraform Init
-        working-directory: build/acr
         run: terraform init
+        working-directory: ./acr
 
       - name: Terraform Apply
-        working-directory: build/acr
         run: terraform apply -auto-approve
+        working-directory: ./acr
 
       - name: Capture Terraform Outputs
         id: tf_outputs
-        working-directory: build/acr
         run: |
           echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
           echo "acr_admin_username=$(terraform output -raw acr_admin_username)" >> $GITHUB_OUTPUT
           echo "acr_admin_password=$(terraform output -raw acr_admin_password)" >> $GITHUB_OUTPUT
+        working-directory: ./acr
 
   docker_build_push:
     name: Docker Build & Push
