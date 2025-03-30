@@ -107,7 +107,7 @@ jobs:
           docker push padmesh28/mews:${{ github.sha }}
 
 
-  Deployment Stage DEV:
+  DeploymentStageDEV:
     runs-on: ubuntu-latest
     needs: build
     if: ${{ needs.build.outputs.acr_action == 'apply' }}
