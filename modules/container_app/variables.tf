@@ -5,3 +5,4 @@ variable "image_tag" {}
 variable "acr_login_server" {}
 variable "image_repository" {}
 variable "acr_id" {}
+variable "subnet_id" {}

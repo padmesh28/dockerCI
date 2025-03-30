@@ -1,6 +1,5 @@
 provider "azurerm" {
   features {}
-  subscription_id = "021e9b0b-06eb-45ad-a4d0-5679f8c73085"
 }
 
 data "azurerm_container_registry" "acr" {
@@ -17,4 +16,17 @@ module "container_app" {
   image_tag           = var.image_tag
   acr_login_server    = var.acr_login_server
   image_repository    = var.image_repository
+  subnet_id           = module.private_network.subnet_id 
+
 }
+
+module "private_network" {
+  source                  = "../../modules/private_network"
+  resource_group_name     = var.resource_group_name
+  location                = var.location
+  environment             = var.environment
+  vnet_address_space      = ["10.1.0.0/16"]
+  subnet_address_prefixes = ["10.1.1.0/24"]
+}
+
+

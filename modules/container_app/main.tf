@@ -34,6 +34,8 @@ resource "azurerm_container_app_environment" "env" {
   location                   = var.location
   resource_group_name        = azurerm_resource_group.rg.name
   log_analytics_workspace_id = azurerm_log_analytics_workspace.log.id
+  infrastructure_subnet_id        = var.subnet_id              # explicitly use provided subnet ID
+  internal_load_balancer_enabled  = true  
 }
 
 resource "azurerm_container_app" "app" {
