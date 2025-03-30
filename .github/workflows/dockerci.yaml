@@ -131,6 +131,25 @@ jobs:
         run: terraform apply -auto-approve tfplan
         working-directory: ./environments/dev
 
+      - name: Wait and Verify Application Deployment
+        if: ${{ github.event.inputs.deploy_action == 'apply' }}
+        env:
+          APP_URL: $(terraform output -raw dev_app_url)
+        run: |
+          echo "Waiting 30 seconds for application to stabilize..."
+          sleep 30
+          
+          echo "Checking application availability..."
+          status_code=$(curl -s -o /dev/null -w "%{http_code}" "$APP_URL")
+          
+          if [ "$status_code" -eq 200 ]; then
+            echo "✅ Mews application deployed successfully on dev environment!"
+          else
+            echo "❌ Application deployment verification failed. Status code: $status_code"
+            exit 1
+          fi
+        working-directory: ./environments/dev
+
       - name: Terraform Destroy (dev)
         if: ${{ github.event.inputs.deploy_action == 'destroy' }}
         run: |
