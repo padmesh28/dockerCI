@@ -133,15 +133,16 @@ jobs:
 
       - name: Wait and Verify Application Deployment
         if: ${{ github.event.inputs.deploy_action == 'apply' }}
-        env:
-          APP_URL: $(terraform output -raw dev_app_url)
         run: |
           echo "Waiting 30 seconds for application to stabilize..."
           sleep 30
-          
-          echo "Checking application availability..."
+
+          echo "Fetching app URL from Terraform output..."
+          APP_URL=$(terraform output -raw dev_app_url)
+
+          echo "Checking application availability at $APP_URL..."
           status_code=$(curl -s -o /dev/null -w "%{http_code}" "$APP_URL")
-          
+
           if [ "$status_code" -eq 200 ]; then
             echo "✅ Mews application deployed successfully on dev environment!"
           else
