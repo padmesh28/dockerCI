@@ -1,0 +1,44 @@
+name: Create Storage Accounts
+
+on:
+  workflow_dispatch:
+
+jobs:
+  storage-account:
+    runs-on: ubuntu-latest
+    env:
+      RESOURCE_GROUP_NAME: mews-rg
+
+    steps:
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Create Resource Group
+        run: |
+          az group create --name $RESOURCE_GROUP_NAME --location westeurope
+
+      - name: Create First Storage Account and Container
+        run: |
+          az storage account create \
+            --resource-group $RESOURCE_GROUP_NAME \
+            --name mewsstorage \
+            --sku Standard_LRS \
+            --encryption-services blob
+
+          az storage container create \
+            --name tfstate \
+            --account-name mewsstorage
+
+      - name: Create Second Storage Account and Container
+        run: |
+          az storage account create \
+            --resource-group $RESOURCE_GROUP_NAME \
+            --name mewsstorageapps \
+            --sku Standard_LRS \
+            --encryption-services blob
+
+          az storage container create \
+            --name tfstate \
+            --account-name mewsstorageapps
