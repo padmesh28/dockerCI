@@ -1,13 +1,10 @@
 name: Linux_Container_Workflow
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       acr_action:
-        description: 'Action for ACR (Apply or Destroy)'
+        description: 'Create ACR and Build/Push Docker Image (Apply or Destroy)'
         type: choice
         required: true
         options:
@@ -128,7 +125,7 @@ jobs:
             -out=tfplan
         working-directory: ./environments/dev
 
-      - name: Terraform Apply/Destroy Approval (dev)
+      - name: Terraform Apply (dev)
         if: ${{ github.event.inputs.deploy_action == 'apply' }}
         run: terraform apply -auto-approve tfplan
         working-directory: ./environments/dev
