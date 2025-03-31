@@ -69,6 +69,8 @@ Azure Container Apps is a fully managed serverless platform that simplifies depl
 
 ## CICD stages-
 
+```
+
 Jobs:
 ├── build
 │
@@ -79,6 +81,9 @@ Jobs:
 └── DeploymentStagePROD (needs: DeploymentStageSTAGE)
 
 Dev ➡️ Stage ➡️ Prod
+
+```
+
 
 storageaccount.yaml This pipeline to create Azure Resource Group and Storage Account to storr state files using AZ command line.
 cicd.yaml This Pipeline has 
