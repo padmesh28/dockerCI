@@ -1,10 +1,10 @@
-name: Mews App Build and deployment workflow
+name: Mews App Build and Deployment Workflow
 
 on:
   workflow_dispatch:
     inputs:
       acr_action:
-        description: 'Create ACR and Build/Push Docker Image (Apply or Destroy)'
+        description: 'ACR and Docker Build (Apply/Destroy)'
         type: choice
         required: true
         options:
@@ -12,18 +12,26 @@ on:
           - destroy
         default: apply
       deploy_action:
-        description: 'Deployment of application using terraform (Apply or Destroy)'
+        description: 'Deployment of application (Apply/Destroy)'
         type: choice
         required: true
         options:
           - apply
           - destroy
         default: apply
+      deploy_environment:
+        description: 'Select deployment environment (dev/stage/prod)'
+        type: choice
+        required: true
+        options:
+          - dev
+          - stage
+          - prod
+        default: dev
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     outputs:
       acr_login_server: ${{ steps.tf_outputs.outputs.acr_login_server }}
       acr_action: ${{ github.event.inputs.acr_action }}
@@ -36,37 +44,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Set up Terraform Env
-        uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.0
-      
-
       - name: Terraform Initialization
         run: terraform init
         working-directory: ./Dockerbuild/acr
-
-      - name: Terraform Plan for Apply (ACR)
+      - name: Terraform Apply (ACR)
         if: ${{ github.event.inputs.acr_action == 'apply' }}
-        run: terraform plan -out=tfplan
+        run: terraform apply -auto-approve
         working-directory: ./Dockerbuild/acr
-
-      - name: Terraform Apply ACR
-        if: ${{ github.event.inputs.acr_action == 'apply' }}
-        run: terraform apply -auto-approve tfplan
-        working-directory: ./Dockerbuild/acr
-
-      - name: Terraform Plan for Destroy (ACR)
-        if: ${{ github.event.inputs.acr_action == 'destroy' }}
-        run: terraform plan -destroy -out=destroyplan
-        working-directory: ./Dockerbuild/acr
-
-      - name: Terraform Apply Destroy ACR
-        if: ${{ github.event.inputs.acr_action == 'destroy' }}
-        run: terraform apply -auto-approve destroyplan
-        working-directory: ./Dockerbuild/acr
-
       - name: Get Terraform Outputs ACR credentials
         id: tf_outputs
         if: ${{ github.event.inputs.acr_action == 'apply' }}
@@ -75,206 +62,63 @@ jobs:
           echo "acr_admin_username=$(terraform output -raw acr_admin_username)" >> $GITHUB_OUTPUT
           echo "acr_admin_password=$(terraform output -raw acr_admin_password)" >> $GITHUB_OUTPUT
         working-directory: ./Dockerbuild/acr
-
       - name: Docker Login after Provisioning ACR
-        if: ${{ github.event.inputs.acr_action == 'apply' }}
         uses: docker/login-action@v3
         with:
           registry: ${{ steps.tf_outputs.outputs.acr_login_server }}
           username: ${{ steps.tf_outputs.outputs.acr_admin_username }}
           password: ${{ steps.tf_outputs.outputs.acr_admin_password }}
-
-      - name: Docker Login to Docker Hub public repo
-        if: ${{ github.event.inputs.acr_action == 'apply' }}
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build Mews App Docker Image
-        if: ${{ github.event.inputs.acr_action == 'apply' }}
+      - name: Build & Push Docker Image
         run: |
           docker build -t ${{ steps.tf_outputs.outputs.acr_login_server }}/sampleapp:${{ github.sha }} \
-                       -t padmesh28/mews:${{ github.sha }} ./Dockerbuild
-
-      - name: Push Docker Mews App Image to ACR
-        if: ${{ github.event.inputs.acr_action == 'apply' }}
-        run: |
+                       ./Dockerbuild
           docker push ${{ steps.tf_outputs.outputs.acr_login_server }}/sampleapp:${{ github.sha }}
 
-      - name: Push Docker Mews App Image to Docker Hub
-        if: ${{ github.event.inputs.acr_action == 'apply' }}
-        run: |
-          docker push padmesh28/mews:${{ github.sha }}
-
-
-  DeploymentStageDEV:
+  Deployment:
     runs-on: ubuntu-latest
     needs: build
-    if: ${{ needs.build.outputs.acr_action == 'apply' }}
-
     env:
       ARM_CLIENT_ID:       ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
       ARM_CLIENT_SECRET:   ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
       ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
       ARM_TENANT_ID:       ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
-      
     steps:
       - uses: actions/checkout@v3
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.0
-
-      - name: Terraform Inittilization
+      - name: Terraform Initialization
         run: terraform init
-        working-directory: ./environments/dev
-
-      - name: Terraform Plan (Azure Container Apps Dev)
+        working-directory: ./environments/${{ github.event.inputs.deploy_environment }}
+      - name: Terraform Plan
         run: |
           terraform plan \
             -var="image_tag=${{ github.sha }}" \
             -var="acr_login_server=${{ needs.build.outputs.acr_login_server }}" \
             -var="image_repository=sampleapp" \
             -out=tfplan
-
-      - name: Terraform Apply Azure Container Apps
+        working-directory: ./environments/${{ github.event.inputs.deploy_environment }}
+      - name: Terraform Apply
         if: ${{ github.event.inputs.deploy_action == 'apply' }}
         run: terraform apply -auto-approve tfplan
-        working-directory: ./environments/dev
-
-      - name: Wait to App Stable and Verify Application Deployment
+        working-directory: ./environments/${{ github.event.inputs.deploy_environment }}
+      - name: Verify Deployment
         if: ${{ github.event.inputs.deploy_action == 'apply' }}
         run: |
-          echo "Waiting 30 seconds for application to stabilize..."
           sleep 30
-
-          echo "Fetching app URL from Terraform output..."
-          APP_URL=$(terraform output -raw dev_app_url)
-
-          echo "Checking application availability at $APP_URL..."
+          APP_URL=$(terraform output -raw container_app_url)
           status_code=$(curl -s -o /dev/null -w "%{http_code}" "$APP_URL")
-
           if [ "$status_code" -eq 200 ]; then
-            echo "✅ Mews application deployed successfully on dev environment!"
+            echo "✅ Deployment successful!"
           else
-            echo "❌ Mew Application deployment verification failed. Status code: $status_code"
+            echo "❌ Deployment verification failed (Status: $status_code)"
             exit 1
           fi
-        working-directory: ./environments/dev
-
-      - name: Terraform Destroy Azure Container Apps
+        working-directory: ./environments/${{ github.event.inputs.deploy_environment }}
+      - name: Terraform Destroy
         if: ${{ github.event.inputs.deploy_action == 'destroy' }}
-        run: |
-          terraform destroy -auto-approve \
-            -var="image_tag=${{ github.sha }}" \
-            -var="acr_login_server=docker.io" \
-            -var="image_repository=padmesh28/mews"
-        working-directory: ./environments/dev
-
-  DeploymentStageSTAGE:
-    runs-on: ubuntu-latest
-    needs: DeploymentStageDEV
-    if: ${{ github.event.inputs.deploy_action == 'apply' }}
-
-    env:
-      ARM_CLIENT_ID:       ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
-      ARM_CLIENT_SECRET:   ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
-      ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
-      ARM_TENANT_ID:       ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.0
-
-      - name: Terraform Initialization
-        run: terraform init
-        working-directory: ./environments/stage
-
-      - name: Terraform Plan (Azure Container Apps Stage)
-        run: |
-          terraform plan \
-            -var="image_tag=${{ github.sha }}" \
-            -var="acr_login_server=${{ needs.build.outputs.acr_login_server }}" \
-            -var="image_repository=sampleapp" \
-            -out=tfplan
-        working-directory: ./environments/stage
-
-      - name: Terraform Apply Azure Container Apps (Stage)
-        run: terraform apply -auto-approve tfplan
-        working-directory: ./environments/stage
-
-      - name: Wait & Verify Stage Deployment
-        run: |
-          echo "Waiting 30 seconds for application stabilization..."
-          sleep 30
-
-          APP_URL=$(terraform output -raw stage_app_url)
-          echo "Checking stage application at $APP_URL..."
-          status_code=$(curl -s -o /dev/null -w "%{http_code}" "$APP_URL")
-
-          if [ "$status_code" -eq 200 ]; then
-            echo "✅ Mews application deployed successfully on STAGE!"
-          else
-            echo "❌ Stage deployment verification failed. Status code: $status_code"
-            exit 1
-          fi
-        working-directory: ./environments/stage
-
-  DeploymentStagePROD:
-    runs-on: ubuntu-latest
-    needs: DeploymentStageSTAGE
-    if: ${{ github.event.inputs.deploy_action == 'apply' }}
-
-    env:
-      ARM_CLIENT_ID:       ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }}
-      ARM_CLIENT_SECRET:   ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
-      ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
-      ARM_TENANT_ID:       ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.5.0
-
-      - name: Terraform Initialization
-        run: terraform init
-        working-directory: ./environments/prod
-
-      - name: Terraform Plan (Azure Container Apps Prod)
-        run: |
-          terraform plan \
-            -var="image_tag=${{ github.sha }}" \
-            -var="acr_login_server=${{ needs.build.outputs.acr_login_server }}" \
-            -var="image_repository=sampleapp" \
-            -out=tfplan
-        working-directory: ./environments/prod
-
-      - name: Terraform Apply Azure Container Apps (Prod)
-        run: terraform apply -auto-approve tfplan
-        working-directory: ./environments/prod
-
-      - name: Wait & Verify Prod Deployment
-        run: |
-          echo "Waiting 30 seconds for application stabilization..."
-          sleep 30
-
-          APP_URL=$(terraform output -raw prod_app_url)
-          echo "Checking production application at $APP_URL..."
-          status_code=$(curl -s -o /dev/null -w "%{http_code}" "$APP_URL")
-
-          if [ "$status_code" -eq 200 ]; then
-            echo "✅ Mews application deployed successfully on PROD!"
-          else
-            echo "❌ Production deployment verification failed. Status code: $status_code"
-            exit 1
-          fi
-        working-directory: ./environments/prod
+        run: terraform destroy -auto-approve \
+          -var="image_tag=${{ github.sha }}" \
+          -var="acr_login_server=${{ needs.build.outputs.acr_login_server }}" \
+          -var="image_repository=sampleapp"
+        working-directory: ./environments/${{ github.event.inputs.deploy_environment }}
