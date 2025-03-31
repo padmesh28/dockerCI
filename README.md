@@ -37,13 +37,14 @@ Dev ➡️ Stage ➡️ Prod
 
 
 <p align="center">
-  <img src="diagrams/mews-dev-rg.svg" width="500">
+  <img src="diagrams/mews-dev-rg.svg" width="300">
 </p>
 
 Dedicated Vnet lB and ip for dev
 
- ![Azure Container Apps Architecture](diagrams/ME_dev-env_mews-dev-rg_westeurope.svg)
-
+<p align="center">
+  <img src="diagrams/ME_dev-env_mews-dev-rg_westeurope.svg" width="300">
+</p>
 storageaccount.yaml This pipeline to create Azure Resource Group and Storage Account to storr state files using AZ command line. (workflow nmae - Create Storage Accounts)
 cicd.yaml This Pipeline has (Workflow Name - Mews App Build and Deployment Workflow)
           CI - ACR and dicker image build and push to ACR after creation in Build stage
