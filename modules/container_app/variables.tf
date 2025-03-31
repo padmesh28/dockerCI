@@ -37,3 +37,9 @@ variable "subnet_id" {
   type        = string
   description = "The resource ID of the subnet used for the Container App environment."
 }
+
+variable "tags" {
+  type        = map(string)
+  default     = {}
+  description = "Common tags to apply to Container App resources."
+}

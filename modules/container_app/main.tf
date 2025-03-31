@@ -2,6 +2,7 @@ resource "azurerm_user_assigned_identity" "acr_pull_identity" {
   name                = "${var.environment}-acr-identity"
   resource_group_name = var.resource_group_name
   location            = var.location
+  tags                 = var.tags
 }
 
 resource "azurerm_role_assignment" "acr_pull_role" {
@@ -16,6 +17,8 @@ resource "azurerm_log_analytics_workspace" "log" {
   resource_group_name = var.resource_group_name
   sku                 = "PerGB2018"
   retention_in_days   = 30
+  tags                = var.tags
+
 }
 
 resource "azurerm_container_app_environment" "container_app_env" {
@@ -24,7 +27,7 @@ resource "azurerm_container_app_environment" "container_app_env" {
   resource_group_name        = var.resource_group_name
   log_analytics_workspace_id = azurerm_log_analytics_workspace.log.id
   infrastructure_subnet_id   = var.subnet_id
-
+  tags                 = var.tags
 
   workload_profile {
     name                  = "Consumption"
@@ -49,6 +52,7 @@ resource "azurerm_container_app" "app" {
   }
 
   template {
+    revision_suffix = "v1"
     container {
       name   = var.environment
       image  = "${var.acr_login_server}/${var.image_repository}:${var.image_tag}"
@@ -67,5 +71,5 @@ resource "azurerm_container_app" "app" {
       latest_revision = true
     }
   }
-
+    tags = var.tags
 }

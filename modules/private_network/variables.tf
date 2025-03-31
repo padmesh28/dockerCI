@@ -22,3 +22,8 @@ variable "subnet_address_prefixes" {
   type        = list(string)
   description = "Address prefixes for the subnet"
 }
+variable "tags" {
+  type        = map(string)
+  default     = {}
+  description = "Common tags to apply to Container App resources."
+}

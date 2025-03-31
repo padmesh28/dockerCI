@@ -6,28 +6,84 @@ Azure Container Apps is a fully managed serverless platform that simplifies depl
 ## Project Structure
 
 ```
-AzureContainerApps/
+├── Dockerbuild
+│   ├── Dockerfile
+│   ├── acr
+│   │   ├── backend.tf
+│   │   ├── main.tf
+│   │   ├── output.tf
+│   │   ├── provider.tf
+│   │   └── variables.tf
+│   ├── license.csv
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── public
+│   │   ├── favicon.ico
+│   │   ├── index.html
+│   │   ├── logo192.png
+│   │   ├── logo512.png
+│   │   ├── manifest.json
+│   │   └── robots.txt
+│   └── src
+│       ├── App.css
+│       ├── App.js
+│       ├── App.test.js
+│       ├── index.css
+│       ├── index.js
+│       ├── logo.svg
+│       ├── reportWebVitals.js
+│       └── setupTests.js
 ├── README.md
-├── build
-│   ├── Dockerfile
-│   ├── acr
-│   │   ├── backend.tf
-│   │   ├── main.tf
-│   │   ├── output.tf
-│   │   ├── provider.tf
-│   │   └── variables.tf
-│   ├── public
-│   ├── src
-│   ├── package.json
-│   └── package-lock.json
 ├── environments
-│   ├── dev
-│   ├── stage
-│   └── prod
+│   ├── dev
+│   │   ├── backend.tf
+│   │   ├── locals.tf
+│   │   ├── main.tf
+│   │   ├── output.tf
+│   │   └── variables.tf
+│   ├── prod
+│   │   ├── backend.tf
+│   │   ├── locals.tf
+│   │   ├── main.tf
+│   │   ├── output.tf
+│   │   └── variables.tf
+│   └── stage
+│       ├── backend.tf
+│       ├── locals.tf
+│       ├── main.tf
+│       ├── output.tf
+│       └── variables.tf
 └── modules
     ├── container_app
+    │   ├── main.tf
+    │   ├── outputs.tf
+    │   ├── provider.tf
+    │   └── variables.tf
     └── private_network
+        ├── main.tf
+        ├── outputs.tf
+        └── variables.tf
+
 ```
+
+
+## CICD stages-
+
+Jobs:
+├── build
+│
+├── DeploymentStageDEV (needs: build)
+│
+├── DeploymentStageSTAGE (needs: DeploymentStageDEV)
+│
+└── DeploymentStagePROD (needs: DeploymentStageSTAGE)
+
+Dev ➡️ Stage ➡️ Prod
+
+storageaccount.yaml This pipeline to create Azure Resource Group and Storage Account to storr state files using AZ command line.
+cicd.yaml This Pipeline has 
+          CI - ACR and dicker image build and push to ACR after creation in Build stage
+          CD - Deployment to Dev,Stage,and Prod
 
 ### Terraform Modules
 
@@ -58,6 +114,11 @@ Terraform scripts provision Azure infrastructure, including:
 
 ### Secure Networking
 Integration of Container Apps with a dedicated VNet and Subnet ensures secure and controlled ingress/egress traffic. Azure automatically provisions a Managed Load Balancer and Public IP within a managed resource group, following a naming convention:
+
+Environment	VNet CIDR	Subnet CIDR
+🌱 Dev	10.1.0.0/16	10.1.0.0/23
+🧪 Stage	10.2.0.0/16	10.2.0.0/23
+🚩 Prod	10.3.0.0/16	10.3.0.0/23
 
 ```
 ME_<container-app-env-name>_<your-resource-group-name>_<region>

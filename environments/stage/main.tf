@@ -5,12 +5,13 @@ provider "azurerm" {
 
 data "azurerm_container_registry" "acr" {
   name                = var.acr_name
-  resource_group_name = var.mews_resource_group_name
+  resource_group_name = var.pre_resourece_group
 }
 
 resource "azurerm_resource_group" "rg" {
-  name     = var.resource_group_name
+  name     = local.resource_group_name
   location = var.location
+  tags                 = var.tags
 }
 
 module "private_network" {
@@ -20,6 +21,7 @@ module "private_network" {
   environment             = var.environment
   vnet_address_space      = var.vnet_address_space
   subnet_address_prefixes = var.subnet_address_prefixes
+  tags                    = local.common_tags
 }
 
 module "container_app" {
@@ -32,4 +34,5 @@ module "container_app" {
   acr_login_server    = var.acr_login_server
   image_repository    = var.image_repository
   subnet_id           = module.private_network.subnet_id  
+  tags                = local.common_tags
 }
