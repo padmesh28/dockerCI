@@ -41,30 +41,31 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.0
+      
 
       - name: Terraform Initialization
         run: terraform init
-        working-directory: ./build-artifacts/acr
+        working-directory: ./Dockerbuild/acr
 
       - name: Terraform Plan for Apply (ACR)
         if: ${{ github.event.inputs.acr_action == 'apply' }}
         run: terraform plan -out=tfplan
-        working-directory: ./build-artifacts/acr
+        working-directory: ./Dockerbuild/acr
 
       - name: Terraform Apply ACR
         if: ${{ github.event.inputs.acr_action == 'apply' }}
         run: terraform apply -auto-approve tfplan
-        working-directory: ./build-artifacts/acr
+        working-directory: ./Dockerbuild/acr
 
       - name: Terraform Plan for Destroy (ACR)
         if: ${{ github.event.inputs.acr_action == 'destroy' }}
         run: terraform plan -destroy -out=destroyplan
-        working-directory: ./build-artifacts/acr
+        working-directory: ./Dockerbuild/acr
 
       - name: Terraform Apply Destroy ACR
         if: ${{ github.event.inputs.acr_action == 'destroy' }}
         run: terraform apply -auto-approve destroyplan
-        working-directory: ./build-artifacts/acr
+        working-directory: ./Dockerbuild/acr
 
       - name: Get Terraform Outputs ACR credentials
         id: tf_outputs
@@ -73,7 +74,7 @@ jobs:
           echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
           echo "acr_admin_username=$(terraform output -raw acr_admin_username)" >> $GITHUB_OUTPUT
           echo "acr_admin_password=$(terraform output -raw acr_admin_password)" >> $GITHUB_OUTPUT
-        working-directory: ./build-artifacts/acr
+        working-directory: ./Dockerbuild/acr
 
       - name: Docker Login after Provisioning ACR
         if: ${{ github.event.inputs.acr_action == 'apply' }}
@@ -94,7 +95,7 @@ jobs:
         if: ${{ github.event.inputs.acr_action == 'apply' }}
         run: |
           docker build -t ${{ steps.tf_outputs.outputs.acr_login_server }}/sampleapp:${{ github.sha }} \
-                       -t padmesh28/mews:${{ github.sha }} ./build-artifacts
+                       -t padmesh28/mews:${{ github.sha }} ./Dockerbuild
 
       - name: Push Docker Mews App Image to ACR
         if: ${{ github.event.inputs.acr_action == 'apply' }}
