@@ -33,6 +33,16 @@ Jobs:
 Dev ➡️ Stage ➡️ Prod
 
 ```
+ ContainerApps Diagram
+![Azure Container Apps Architecture](diagrams/ME_dev-env_mews-dev-rg_westeurope.svg
+
+
+
+Dedicated Vnet lB and ip for dev
+
+![Azure Container Apps Architecture](diagrams/mews-dev-rg.svg
+
+
 
 
 storageaccount.yaml This pipeline to create Azure Resource Group and Storage Account to storr state files using AZ command line. (workflow nmae - Create Storage Accounts)
@@ -160,3 +170,4 @@ Post-deployment validation is automatically performed via curl commands in the G
 ---
 
 This structured CI/CD approach ensures streamlined and secure deployments of your Azure Container Apps across multiple environments, leveraging infrastructure as code and GitHub Actions for full automation.Please refer documenatation atatched it.
+
