@@ -109,7 +109,7 @@ jobs:
           APP_URL=$(terraform output -raw app_url)
           status_code=$(curl -s -o /dev/null -w "%{http_code}" "$APP_URL")
           if [ "$status_code" -eq 200 ]; then
-            echo "✅ Deployment successful!"
+            echo "✅ Deployment successful!  $APP_URL "
           else
             echo "❌ Deployment verification failed (Status: $status_code)"
             exit 1
@@ -117,7 +117,8 @@ jobs:
         working-directory: ./environments/${{ github.event.inputs.deploy_environment }}
       - name: Terraform Destroy
         if: ${{ github.event.inputs.deploy_action == 'destroy' }}
-        run: terraform destroy -auto-approve \
+        run: |
+          terraform destroy -auto-approve \
           -var="image_tag=${{ github.sha }}" \
           -var="acr_login_server=${{ needs.build.outputs.acr_login_server }}" \
           -var="image_repository=sampleapp"
