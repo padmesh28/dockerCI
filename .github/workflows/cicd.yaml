@@ -117,7 +117,7 @@ jobs:
       ARM_CLIENT_SECRET:   ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }}
       ARM_SUBSCRIPTION_ID: ${{ fromJson(secrets.AZURE_CREDENTIALS).subscriptionId }}
       ARM_TENANT_ID:       ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
-
+      
     steps:
       - uses: actions/checkout@v3
 
@@ -130,14 +130,13 @@ jobs:
         run: terraform init
         working-directory: ./environments/dev
 
-      - name: Terraform Plan for Azure Container Apps
+      - name: Terraform Plan (Azure Container Apps Dev)
         run: |
           terraform plan \
             -var="image_tag=${{ github.sha }}" \
-            -var="acr_login_server=docker.io" \
-            -var="image_repository=padmesh28/mews" \
+            -var="acr_login_server=${{ needs.build.outputs.acr_login_server }}" \
+            -var="image_repository=sampleapp" \
             -out=tfplan
-        working-directory: ./environments/dev
 
       - name: Terraform Apply Azure Container Apps
         if: ${{ github.event.inputs.deploy_action == 'apply' }}
