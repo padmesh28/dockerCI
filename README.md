@@ -34,13 +34,17 @@ Dev ➡️ Stage ➡️ Prod
 
 ```
  ContainerApps Diagram
-![Azure Container Apps Architecture](diagrams/ME_dev-env_mews-dev-rg_westeurope.svg
+
+ ![Azure Container Apps Architecture](diagrams/ME_dev-env_mews-dev-rg_westeurope.svg)
+
 
 
 
 Dedicated Vnet lB and ip for dev
 
-![Azure Container Apps Architecture](diagrams/mews-dev-rg.svg
+<p align="center">
+  <img src="diagrams/mews-dev-rg.svg" width="800">
+</p>
 
 
 
