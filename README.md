@@ -6,63 +6,13 @@ Azure Container Apps is a fully managed serverless platform that simplifies depl
 ## Project Structure
 
 ```
-├── Dockerbuild
-│   ├── Dockerfile
-│   ├── acr
-│   │   ├── backend.tf
-│   │   ├── main.tf
-│   │   ├── output.tf
-│   │   ├── provider.tf
-│   │   └── variables.tf
-│   ├── license.csv
-│   ├── package-lock.json
-│   ├── package.json
-│   ├── public
-│   │   ├── favicon.ico
-│   │   ├── index.html
-│   │   ├── logo192.png
-│   │   ├── logo512.png
-│   │   ├── manifest.json
-│   │   └── robots.txt
-│   └── src
-│       ├── App.css
-│       ├── App.js
-│       ├── App.test.js
-│       ├── index.css
-│       ├── index.js
-│       ├── logo.svg
-│       ├── reportWebVitals.js
-│       └── setupTests.js
-├── README.md
-├── environments
-│   ├── dev
-│   │   ├── backend.tf
-│   │   ├── locals.tf
-│   │   ├── main.tf
-│   │   ├── output.tf
-│   │   └── variables.tf
-│   ├── prod
-│   │   ├── backend.tf
-│   │   ├── locals.tf
-│   │   ├── main.tf
-│   │   ├── output.tf
-│   │   └── variables.tf
-│   └── stage
-│       ├── backend.tf
-│       ├── locals.tf
-│       ├── main.tf
-│       ├── output.tf
-│       └── variables.tf
-└── modules
-    ├── container_app
-    │   ├── main.tf
-    │   ├── outputs.tf
-    │   ├── provider.tf
-    │   └── variables.tf
-    └── private_network
-        ├── main.tf
-        ├── outputs.tf
-        └── variables.tf
+├── Dockerbuild/          # Docker files and ACR setup
+├── environments/         # Terraform envs (dev, stage, prod)
+├── modules/
+│   ├── container_app/    # Container App infra module
+│   └── private_network/  # VNet and subnet infra module
+└── README.md
+
 
 ```
 
@@ -120,10 +70,14 @@ Terraform scripts provision Azure infrastructure, including:
 ### Secure Networking
 Integration of Container Apps with a dedicated VNet and Subnet ensures secure and controlled ingress/egress traffic. Azure automatically provisions a Managed Load Balancer and Public IP within a managed resource group, following a naming convention:
 
-Environment	VNet CIDR	Subnet CIDR
-🌱 Dev	10.1.0.0/16	10.1.0.0/23
-🧪 Stage	10.2.0.0/16	10.2.0.0/23
-🚩 Prod	10.3.0.0/16	10.3.0.0/23
+## 🌐 Azure VNet and Subnet CIDR Ranges
+
+| Environment | VNet CIDR        | Subnet CIDR       |
+|-------------|------------------|-------------------|
+| `dev`       | `10.1.0.0/16`    | `10.1.0.0/23`     |
+| `stage`     | `10.2.0.0/16`    | `10.2.0.0/23`     |
+| `prod`      | `10.3.0.0/16`    | `10.3.0.0/23`     |
+
 
 ```
 ME_<container-app-env-name>_<your-resource-group-name>_<region>
@@ -205,4 +159,4 @@ Post-deployment validation is automatically performed via curl commands in the G
 
 ---
 
-This structured CI/CD approach ensures streamlined and secure deployments of your Azure Container Apps across multiple environments, leveraging infrastructure as code and GitHub Actions for full automation.
+This structured CI/CD approach ensures streamlined and secure deployments of your Azure Container Apps across multiple environments, leveraging infrastructure as code and GitHub Actions for full automation.Please refer documenatation atatched it.
