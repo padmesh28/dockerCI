@@ -106,7 +106,7 @@ jobs:
         if: ${{ github.event.inputs.deploy_action == 'apply' }}
         run: |
           sleep 30
-          APP_URL=$(terraform output -raw container_app_url)
+          APP_URL=$(terraform output -raw app_url)
           status_code=$(curl -s -o /dev/null -w "%{http_code}" "$APP_URL")
           if [ "$status_code" -eq 200 ]; then
             echo "✅ Deployment successful!"
