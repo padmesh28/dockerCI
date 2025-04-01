@@ -45,6 +45,7 @@ Dedicated Vnet lB and ip for dev
 <p align="center">
   <img src="diagrams/ME_dev-env_mews-dev-rg_westeurope.svg" width="100">
 </p>
+
 #### storageaccount.yaml This pipeline to create Azure Resource Group and Storage Account to storr state files using AZ command line. (workflow nmae - Create Storage Accounts)
 
 #### cicd.yaml This Pipeline has (Workflow Name - Mews App Build and Deployment Workflow)
